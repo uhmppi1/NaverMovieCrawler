@@ -24,7 +24,7 @@ class NaverMovieCrawler() :
         self.defaultURL = "https://movie.naver.com/"
         self.movieCommentData = OrderedDict()
         self.errorList = list()
-        self.maxpages = args.maxpages
+        self.maxpages = 10 #args.maxpages
 
 
 
@@ -33,7 +33,7 @@ class NaverMovieCrawler() :
     def load_movieList(self, fileName):
         # 크롤러에 들어갈 수 있도록 movieList 생성하기
         # movieList = [(영화제목, 제작년도),(영화제목, 제작년도),...]
-        with open("./data/"+fileName) as f:
+        with open(fileName) as f:
             file = json.load(f)
             data = file["movieListResult"]["movieList"]
             numMovie = len(data)
@@ -48,10 +48,10 @@ class NaverMovieCrawler() :
         return movieList
 
     def save_data(self, fileName):
-        with open("./data/" + fileName + ".json", 'w', encoding="utf-8") as f:
+        with open(fileName, 'w', encoding="utf-8") as f:
             json.dump(self.movieCommentData, f, ensure_ascii=False, indent='\t')
 
-        with open("./data/Nodata.csv", 'w', newline='') as ef :
+        with open("./data/Nodata.csv", 'a', newline='') as ef :
             csvWriter = csv.writer(ef)
             for error in self.errorList :
                 csvWriter.writerow(error)
@@ -64,7 +64,11 @@ class NaverMovieCrawler() :
         # title을 검색하여 제작연도를 비교하여 영화를 찾기
         # input : movieData(영화제목, 제작년도)
         # output : 해당 영화페이지로 이동
+
         title, pYear = movieData
+
+        print('##########################')
+        print('trying to crawl : %s(%s)' % (title, pYear))
 
         self.webdriver.get(self.defaultURL)
         elem = self.webdriver.find_element_by_xpath('//*[@id="ipt_tx_srch"]')
