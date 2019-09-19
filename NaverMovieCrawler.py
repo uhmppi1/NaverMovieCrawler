@@ -54,9 +54,13 @@ class NaverMovieCrawler() :
         with open("./data/Nodata.csv", 'a', newline='') as ef :
             csvWriter = csv.writer(ef)
             for error in self.errorList :
-                csvWriter.writerow(error)
+                try:
+                    csvWriter.writerow(error)
+                except UnicodeEncodeError as e : # Nodata.csv 를 cp949로 열다보니 json write할 땐 안생기는  UnicodeEncodeError가 난다. skip해 주자.
+                    continue
 
         print("Successfully Saved")
+        self.movieCommentData.clear()   # 20190919 pipaek : 버퍼를 클리어해주지 않으면 데이터가 중복으로 저장된다.
 
 
 
@@ -185,14 +189,16 @@ class NaverMovieCrawler() :
 
             if not len(result) : break
             for li in result :
+                try:
+                    comment = OrderedDict()
+                    comment["text"] = li.select('.score_reple p')[0].text
+                    comment["score"] = li.select('.star_score em')[0].text
+                    comment["like"] = li.select('.btn_area strong span')[0].text
+                    comment["notLike"] = li.select('.btn_area strong span')[1].text
 
-                comment = OrderedDict()
-                comment["text"] = li.select('.score_reple p')[0].text
-                comment["score"] = li.select('.star_score em')[0].text
-                comment["like"] = li.select('.btn_area strong span')[0].text
-                comment["notLike"] = li.select('.btn_area strong span')[1].text
-
-                commentsList.append(comment)
+                    commentsList.append(comment)
+                except IndexError as e : # score항목이 없는 코멘트도 있다. 그냥 버리자.
+                    continue
 
         return commentsList
 
