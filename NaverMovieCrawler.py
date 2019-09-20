@@ -73,19 +73,17 @@ class NaverMovieCrawler() :
 
         print('##########################')
         print('trying to crawl : %s(%s)' % (title, pYear))
+        try:
+            self.webdriver.get(self.defaultURL)
+            elem = self.webdriver.find_element_by_xpath('//*[@id="ipt_tx_srch"]')
+            elem.send_keys(title)
+            # 영화 검색
+            self.webdriver.find_element_by_xpath('//*[@id="jSearchArea"]/div/button').click()
+            # 기다리는 시간 설정
+            self.webdriver.implicitly_wait(5)
+            # 영화 검색 탭으로 이동
+            self.webdriver.find_element_by_xpath('//*[@class="search_menu"]/li[2]/a').click()
 
-        self.webdriver.get(self.defaultURL)
-        elem = self.webdriver.find_element_by_xpath('//*[@id="ipt_tx_srch"]')
-        elem.send_keys(title)
-        # 영화 검색
-        self.webdriver.find_element_by_xpath('//*[@id="jSearchArea"]/div/button').click()
-        # 기다리는 시간 설정
-        self.webdriver.implicitly_wait(5)
-        # 영화 검색 탭으로 이동
-        self.webdriver.find_element_by_xpath('//*[@class="search_menu"]/li[2]/a').click()
-
-
-        try :
             # 영화 검색이 1페이지 이상 나올 경우?!?!? 1페이지에 10개
             srch_res = self.webdriver.find_element_by_xpath('//*[@id="old_content"]/div[1]/span[@class="num"]').text
             s_idx, e_idx = srch_res.find('/'), srch_res.find('건')
