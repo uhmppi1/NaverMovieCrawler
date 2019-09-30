@@ -54,9 +54,13 @@ class NaverMovieCrawler() :
         with open("./data/Nodata.csv", 'a', newline='') as ef :
             csvWriter = csv.writer(ef)
             for error in self.errorList :
-                csvWriter.writerow(error)
+                try:
+                    csvWriter.writerow(error)
+                except UnicodeEncodeError as e : # Nodata.csv 를 cp949로 열다보니 json write할 땐 안생기는  UnicodeEncodeError가 난다. skip해 주자.
+                    continue
 
         print("Successfully Saved")
+        self.movieCommentData.clear()   # 20190919 pipaek : 버퍼를 클리어해주지 않으면 데이터가 중복으로 저장된다.
 
 
 
@@ -69,19 +73,17 @@ class NaverMovieCrawler() :
 
         print('##########################')
         print('trying to crawl : %s(%s)' % (title, pYear))
+        try:
+            self.webdriver.get(self.defaultURL)
+            elem = self.webdriver.find_element_by_xpath('//*[@id="ipt_tx_srch"]')
+            elem.send_keys(title)
+            # 영화 검색
+            self.webdriver.find_element_by_xpath('//*[@id="jSearchArea"]/div/button').click()
+            # 기다리는 시간 설정
+            self.webdriver.implicitly_wait(5)
+            # 영화 검색 탭으로 이동
+            self.webdriver.find_element_by_xpath('//*[@class="search_menu"]/li[2]/a').click()
 
-        self.webdriver.get(self.defaultURL)
-        elem = self.webdriver.find_element_by_xpath('//*[@id="ipt_tx_srch"]')
-        elem.send_keys(title)
-        # 영화 검색
-        self.webdriver.find_element_by_xpath('//*[@id="jSearchArea"]/div/button').click()
-        # 기다리는 시간 설정
-        self.webdriver.implicitly_wait(5)
-        # 영화 검색 탭으로 이동
-        self.webdriver.find_element_by_xpath('//*[@class="search_menu"]/li[2]/a').click()
-
-
-        try :
             # 영화 검색이 1페이지 이상 나올 경우?!?!? 1페이지에 10개
             srch_res = self.webdriver.find_element_by_xpath('//*[@id="old_content"]/div[1]/span[@class="num"]').text
             s_idx, e_idx = srch_res.find('/'), srch_res.find('건')
@@ -185,14 +187,16 @@ class NaverMovieCrawler() :
 
             if not len(result) : break
             for li in result :
+                try:
+                    comment = OrderedDict()
+                    comment["text"] = li.select('.score_reple p')[0].text
+                    comment["score"] = li.select('.star_score em')[0].text
+                    comment["like"] = li.select('.btn_area strong span')[0].text
+                    comment["notLike"] = li.select('.btn_area strong span')[1].text
 
-                comment = OrderedDict()
-                comment["text"] = li.select('.score_reple p')[0].text
-                comment["score"] = li.select('.star_score em')[0].text
-                comment["like"] = li.select('.btn_area strong span')[0].text
-                comment["notLike"] = li.select('.btn_area strong span')[1].text
-
-                commentsList.append(comment)
+                    commentsList.append(comment)
+                except IndexError as e : # score항목이 없는 코멘트도 있다. 그냥 버리자.
+                    continue
 
         return commentsList
 
