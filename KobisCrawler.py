@@ -41,29 +41,40 @@ class KobisCrawler():
 
         movies_gen, movies_art, movies_ind, movies_art_ind = [], [], [], []
         for p in range(1, num_pages+1):
-            print(p, '페이지 시작')
-            #페이지 번호 클릭
-            self.browser.execute_script("goPage('" +str(p)+"')")
-            time.sleep(1)#3)
+            for i in range(5): # max 5번 시도!!
+                try:
+                    print(p, '페이지 시작')
+                    #페이지 번호 클릭
+                    self.browser.execute_script("goPage('" +str(p)+"')")
+                    time.sleep(1)#3)
 
-            #해당 페이지에 있는 영화 코드 리스트
-            code_list = self.get_movie_codes()
-            print(code_list)
+                    #해당 페이지에 있는 영화 코드 리스트
+                    code_list = self.get_movie_codes()
+                    print(code_list)
 
-            #해당 코드 상세 페이지
-            for code in code_list:
-                self.browser.execute_script("mstView('movie','"+str(code)+"');return false;")
-                time.sleep(1)#3)
-                soup = BeautifulSoup(self.browser.page_source, 'html.parser')
-                html_1 = str(soup.find_all(class_='ovf cont')[0]).split('요약정보')[1].split('</dd>')[0]
-                if '일반영화' in html_1: movies_gen.append(code)
-                if '예술' in html_1: movies_art.append(code)
-                if '독립' in html_1: movies_ind.append(code)
-                if '예술' in html_1 and '독립' in html_1: movies_art_ind.append(code)
-                time.sleep(0.5)#1)
-                self.browser.find_element_by_xpath('//*[@class="close back"]').click()
-                time.sleep(1)#3)
-
+                    #해당 코드 상세 페이지
+                    for code in code_list:
+                        for j in range(5):  # max 5번 시도!!
+                            try:
+                                self.browser.execute_script("mstView('movie','"+str(code)+"');return false;")
+                                time.sleep(1)#3)
+                                soup = BeautifulSoup(self.browser.page_source, 'html.parser')
+                                html_1 = str(soup.find_all(class_='ovf cont')[0]).split('요약정보')[1].split('</dd>')[0]
+                                if '일반영화' in html_1: movies_gen.append(code)
+                                if '예술' in html_1: movies_art.append(code)
+                                if '독립' in html_1: movies_ind.append(code)
+                                if '예술' in html_1 and '독립' in html_1: movies_art_ind.append(code)
+                                # time.sleep(0.5)#1)
+                            except StaleElementReferenceException as e:  # Sleep이 충분하지 않았다. 여기서 걸리면 해당 코드의 영화정보를 다시 시작하자.
+                                time.sleep(3)
+                                continue
+                            self.browser.find_element_by_xpath('//*[@class="close back"]').click()
+                            time.sleep(1)#3)
+                            break
+                except StaleElementReferenceException as e:  # Sleep이 충분하지 않았다. 여기서 걸리면 해당 페이지를 다시 시작하자.
+                    time.sleep(3)
+                    continue
+                break
             # if p == 2:
             #     break
             #
@@ -80,6 +91,6 @@ class KobisCrawler():
         self.save('art_ind_' + str(sYear), movies_art_ind)
 
 crawler = KobisCrawler()
-for yyyy in range(2000, 2019):
+for yyyy in range(2000, 2010):
     y = (yyyy, yyyy) # 제작년도 2000년~2000년
     crawler.get(y)
